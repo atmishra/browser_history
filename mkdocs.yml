@@ -1,0 +1,11 @@
+site_name: history
+site_description: API to maintain user activity log
+repo_url: https://github.com/atmishra/browser_history
+site_dir: site
+copyright: Copyright &copy; 2015, <a href="https://github.com/atmishra">atmishra</a>.
+
+pages:
+  - Home: 'index.md'
+  - API:
+    - Authentication: 'api/authentication.md'
+    - Users: 'api/users.md'
