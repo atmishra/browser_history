@@ -7,8 +7,9 @@ from rest_framework.response import Response
 from .models import Link, UserHistory
 from .serializer import LinkSerializer
 
-import json
+import jsonpickle
 from utils.stack import Stack
+from itertools import chain
 
 
 class LinkView(mixins.CreateModelMixin, mixins.ListModelMixin, generics.GenericAPIView):
@@ -22,20 +23,9 @@ class LinkView(mixins.CreateModelMixin, mixins.ListModelMixin, generics.GenericA
     def get(self, request, *args, **kwargs):
 
         user = self.request.user
-
         action = self.request.query_params.get('action', None)
-
         links = self.updateStack(user, action)
-
         self.links = links
-
-        # if len(links) == 1 and links[0] == -1:
-        #     links = Link.objects.none()
-
-        # else:
-
-        #     links = Link.objects.filter(pk__in=links)
-
         return self.list(request, *args, **kwargs)
 
     def get_queryset(self):
@@ -45,8 +35,12 @@ class LinkView(mixins.CreateModelMixin, mixins.ListModelMixin, generics.GenericA
             links = Link.objects.none()
 
         else:
-
-            links = Link.objects.filter(pk__in=links)
+            links_list = []
+            for id in links:
+                if id > 0:
+                    links_list.append(Link.objects.get(pk=id))
+            none_qs = Link.objects.none()
+            links = list(chain(none_qs, links_list))
 
         return links
 
@@ -58,22 +52,29 @@ class LinkView(mixins.CreateModelMixin, mixins.ListModelMixin, generics.GenericA
             try:
                 history = UserHistory.objects.get(user=user)
 
-                stack = json.loads(
-                    history.stack, object_hook=self.object_decoder)
+                stack = jsonpickle.decode(history.stack)
+
+                last_ten = jsonpickle.decode(history.last_ten)
+
                 if action == 'back':
 
                     link = stack.back()
                     links.append(link)
+                    last_ten.append(link)
 
                 elif action == 'forward':
                     link = stack.forward()
                     links.append(link)
+                    last_ten.append(link)
 
                 elif action == 'list':
-                    links = stack.last_ten()
+                    links = list(last_ten)
 
-                stack = json.dumps(stack, default=lambda o: o.__dict__)
+                stack = jsonpickle.encode(stack)
+                last_ten = jsonpickle.encode(last_ten)
+
                 history.stack = stack
+                history.last_ten = last_ten
 
             except ObjectDoesNotExist:
 
@@ -83,8 +84,8 @@ class LinkView(mixins.CreateModelMixin, mixins.ListModelMixin, generics.GenericA
 
         return links
 
-    def object_decoder(self, obj):
+    # def object_decoder(self, obj):
 
-        if 'current_index' in obj and 'items' in obj:
-            return Stack(obj['items'], obj['current_index'])
-        return obj
+    #     if 'current_index' in obj and 'items' in obj:
+    #         return Stack(obj['items'], obj['current_index'])
+    #     return obj

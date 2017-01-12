@@ -7,7 +7,7 @@ class LinkAdmin(admin.ModelAdmin):
 
 
 class UserHistoryAdmin(admin.ModelAdmin):
-    list_display = ['user', 'stack']
+    list_display = ['user', 'stack', 'last_ten']
 
 admin.site.register(Link, LinkAdmin)
 admin.site.register(UserHistory, UserHistoryAdmin)

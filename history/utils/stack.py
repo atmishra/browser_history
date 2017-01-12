@@ -51,3 +51,8 @@ class Stack(object):
 
     def show(self):
         print(self.items)
+
+
+# class CircularStack(object):
+
+#     def __init__(self, items=[])

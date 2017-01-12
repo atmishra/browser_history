@@ -14,3 +14,4 @@ class Link(models.Model):
 class UserHistory(models.Model):
     user = models.ForeignKey(User)
     stack = models.TextField()
+    last_ten = models.TextField()

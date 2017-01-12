@@ -2,7 +2,8 @@ from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 from .models import Link, UserHistory
 from utils.stack import Stack
-import json
+import jsonpickle
+import collections
 
 
 class LinkSerializer(serializers.ModelSerializer):
@@ -20,26 +21,33 @@ class LinkSerializer(serializers.ModelSerializer):
         self.checkStack(user, link.id)
         return link
 
-    def object_decoder(self, obj):
-
-        if 'current_index' in obj and 'items' in obj:
-            return Stack(obj['items'], obj['current_index'])
-        return obj
-
     def checkStack(self, user, link_id):
         try:
+            '''Retrieve history object if exists'''
             history = UserHistory.objects.get(user=user)
 
-            stack = json.loads(history.stack, object_hook=self.object_decoder)
+            '''Retrieve stack for the user and update it'''
+            stack = jsonpickle.decode(history.stack)
             stack.push(link_id)
-            stack = json.dumps(stack, default=lambda o: o.__dict__)
+            stack = jsonpickle.encode(stack)
+
+            '''Retrieve last activity for the user and update it'''
+            last_ten = jsonpickle.decode(history.last_ten)
+            last_ten.append(link_id)
+            last_ten = jsonpickle.encode(last_ten)
+
             history.stack = stack
+            history.last_ten = last_ten
 
         except ObjectDoesNotExist:
 
             stack = Stack()
             stack.push(link_id)
-            stack = json.dumps(stack, default=lambda o: o.__dict__)
-            history = UserHistory(user=user, stack=stack)
+            stack = jsonpickle.encode(stack)
+
+            last_ten = collections.deque(maxlen=10)
+            last_ten.append(link_id)
+            last_ten = jsonpickle.encode(last_ten)
+            history = UserHistory(user=user, stack=stack, last_ten=last_ten)
 
         history.save()
